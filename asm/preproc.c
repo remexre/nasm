@@ -130,6 +130,7 @@ enum pp_token_type {
     TOK_PASTE,              /* %+ */
     TOK_COND_COMMA,         /* %, */
     TOK_INDIRECT,           /* %[...] */
+    TOK_INDIRECT_LABEL,     /* %%[ */
     TOK_XDEF_PARAM,         /* Used during %xdefine processing */
     TOK_SMAC_START_PARAMS,  /* MUST BE LAST IN THE LIST!!! */
     TOK_MAX = INT_MAX       /* Keep compiler from reducing the range */
@@ -1490,8 +1491,13 @@ static Token *tokenize(const char *line)
                 }
                 while (nasm_isidchar(*p));
             } else if (*p == '%') {
-                /* %% operator */
                 p++;
+                if (*p == '[') {
+                    /* %%[ */
+                    p++;
+                } else {
+                    /* %% operator */
+                }
             }
 
             if (!ep)
@@ -1537,7 +1543,13 @@ static Token *tokenize(const char *line)
                     break;
 
                 case '%':
-                    type = (toklen == 2) ? TOK_OTHER : TOK_LOCAL_SYMBOL;
+                    if (toklen == 2) {
+                        type = TOK_OTHER;
+                    } else if (toklen >= 3 && line[2] == '[') {
+                        type = TOK_INDIRECT_LABEL;
+                    } else {
+                        type = TOK_LOCAL_SYMBOL;
+                    }
                     break;
 
                 case '$':
